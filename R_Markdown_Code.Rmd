@@ -1,0 +1,25 @@
+```{r}
+data <- read.csv("kc_house_data.csv")
+data
+```
+
+```{r}
+check_zero_year_renovated <- function(data) {
+  data_output <- data
+  data_output$yr_renovated_is_zero <- data$yr_renovated == 0
+  return(data_output)
+}
+
+zero_check <- check_zero_year_renovated(data)
+```
+
+```{r}
+check_invalid_year_renovated <- function(data) {
+  data_output <- data
+  data_output$yr_renovated_is_invalid <- data$yr_renovated != 0 & data$yr_renovated < data$yr_built
+  return(data_output)
+}
+
+invalid_renovation_check <- check_invalid_year_renovated(data)
+```
+
