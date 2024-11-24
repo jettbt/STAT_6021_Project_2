@@ -23,3 +23,34 @@ check_invalid_year_renovated <- function(data) {
 invalid_renovation_check <- check_invalid_year_renovated(data)
 ```
 
+```{r}
+library(ggplot2)
+
+ggplot(data, aes(x = sqft_living, y = price)) +
+  geom_point(alpha = 0.4) +
+  labs(
+    title = "Scatter Plot: Price vs. Living Area",
+    x = "Living Area (sqft)",
+    y = "Price"
+  )
+```
+```{r}
+ggplot(data, aes(x = as.factor(condition), y = price)) +
+  geom_boxplot() +
+  labs(
+    title = "Box Plot: Price by Condition",
+    x = "Condition",
+    y = "Price"
+  )
+```
+```{r}
+ggplot(data, aes(x = as.factor(condition), y = price)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(
+    title = "Box Plot: Price by Condition",
+    x = "Condition",
+    y = "Price (Log)"
+  )
+```
+
