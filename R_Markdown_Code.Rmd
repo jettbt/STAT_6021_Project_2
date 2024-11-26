@@ -1,4 +1,5 @@
 ```{r}
+#Comment Test
 data <- read.csv("kc_house_data.csv")
 data
 ```
@@ -43,6 +44,7 @@ ggplot(data, aes(x = as.factor(condition), y = price)) +
     y = "Price"
   )
 ```
+
 ```{r}
 ggplot(data, aes(x = as.factor(condition), y = price)) +
   geom_boxplot() +
