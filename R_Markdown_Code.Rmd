@@ -1,4 +1,5 @@
 ```{r}
+library(tidyverse)
 data <- read.csv("kc_house_data.csv")
 data
 ```
@@ -23,6 +24,7 @@ ggplot(data, aes(x = sqft_living, y = price)) +
     y = "Price"
   )
 ```
+
 ```{r}
 ggplot(data, aes(x = as.factor(condition), y = price)) +
   geom_boxplot() +
@@ -46,7 +48,7 @@ ggplot(data, aes(x = as.factor(condition), y = price)) +
 
 Zoha Data Visualizations:
 ```{r}
-ggplot(Data, aes(x=sqft_living, y=price, color=sqft_living)) +
+ggplot(data, aes(x=sqft_living, y=price, color=sqft_living)) +
                  facet_wrap(~waterfront) +
                  geom_point() + 
                  labs(title = "Price of House based on sqft living and waterfront view",
@@ -56,7 +58,7 @@ ggplot(Data, aes(x=sqft_living, y=price, color=sqft_living)) +
 ```
 **(2) Price of median sqft living **
 ```{r}
-Data<-Data%>%
+Data<-data%>%
   mutate(house_size=case_when(sqft_living <= 2000 ~ "small",
   sqft_living > 2000 & sqft_living <=5000 ~ "medium",
   sqft_living > 5000 ~ "large"))
@@ -91,3 +93,9 @@ ggplot(Data, aes(x= as.factor(grade), y=price))+
   theme(plot.title = element_text(hjust=0.5))+
   labs(x="Grade", y="Price", title="Price of House across Grade")
 ```
+Jett:
+```{r}
+result <- lm(price ~ . - date, data = data)
+summary(result)
+```
+
