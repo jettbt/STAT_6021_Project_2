@@ -3,7 +3,7 @@ library(tidyverse)
 data <- read.csv("kc_house_data.csv")
 data
 ```
-
+Jett's Data Cleaning:
 ```{r}
 non_renovated_data <- data[data$yr_renovated == 0, ]
 renovated_data <- data[data$yr_renovated != 0, ]
@@ -24,7 +24,6 @@ ggplot(data, aes(x = sqft_living, y = price)) +
     y = "Price"
   )
 ```
-
 ```{r}
 ggplot(data, aes(x = as.factor(condition), y = price)) +
   geom_boxplot() +
@@ -93,9 +92,36 @@ ggplot(Data, aes(x= as.factor(grade), y=price))+
   theme(plot.title = element_text(hjust=0.5))+
   labs(x="Grade", y="Price", title="Price of House across Grade")
 ```
-Jett:
+Jett's LM, forward, backward and stepwise elimination:
 ```{r}
-result <- lm(price ~ . - date, data = data)
+#I removed time due to the difficulties in working with it in a linear regression model, and I took out sqft living as it is just the sum of sqft above and sqft basement and is therefore redundant
+result <- lm(price ~ . - date - sqft_living - id, data = data)
 summary(result)
+```
+```{r}
+regnull <- lm(price~1, data=data)
+regfull <- result
+step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward")
+```
+```{r}
+step(regnull, scope=list(lower=regnull, upper=regfull), direction="forward")
+```
+```{r}
+step(regnull, scope=list(lower=regnull, upper=regfull), direction="both")
+```
+Jett regression assumptions check:
+```{r}
+par(mfrow = c(2, 2))
+plot(result)
+```
+```{r}
+library(MASS)
+MASS::boxcox(result)
+```
+```{r}
+data$y.star<-log(data$price)
+result.ystar<-lm(y.star~.- date - sqft_living - id, data=data)
+par(mfrow = c(2, 2))
+plot(result.ystar)
 ```
 
