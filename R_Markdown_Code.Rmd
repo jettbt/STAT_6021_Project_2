@@ -124,4 +124,9 @@ result.ystar<-lm(y.star~.- date - sqft_living - id, data=data)
 par(mfrow = c(2, 2))
 plot(result.ystar)
 ```
-
+Jett, Checking for multicollinearity:
+```{r}
+library(faraway)
+round(faraway::vif(result),3)
+```
+No variables have a VIF of above 5, meaning this test does not indicate multicolinearity. sqftabove however has a 4.923 which is close enough to look into!
