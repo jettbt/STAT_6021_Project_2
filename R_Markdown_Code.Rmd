@@ -202,3 +202,68 @@ round(faraway::vif(all),2)
 ```
 
 Since these values are all below 5, they don't show multicollinearity.
+
+Katherine's Model
+```{r}
+#Check correlations
+round(cor(data),3)
+```
+
+```{r}
+#First model based on correlations (not very good adjusted R-squared value of 0.5741.)
+result<-lm(price~sqft_living+grade+bathrooms+view, data=data)
+summary(result)
+
+#Full Model with adj R-squared of ~0.7
+result_full<-lm(price~., data=data)
+summary(result_full)
+
+library(faraway)
+faraway::vif(result_full)
+
+```
+
+```{r}
+#forward, backward, and stepwise selection
+
+##intercept only model
+regnull <- lm(price~1, data=data)
+##model with all predictors
+regfull <- lm(price~., data=data)
+
+##### Forward selection
+step(regnull, scope=list(lower=regnull, upper=regfull), direction="forward")
+
+#Forward selected model:  0.7 adj r-squared
+
+fwd_selected = lm(price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition + sqft_above + sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = Data)
+summary(fwd_selected)
+
+fwd_selected = lm(price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition - sqft_above - sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = Data)
+summary(fwd_selected)
+
+##### backward regression
+step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward")
+
+##### stepwise regression
+step(regnull, scope=list(lower=regnull, upper=regfull), direction="both")
+stepwise_reg = lm(formula = price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition + sqft_above + sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = Data)
+
+faraway::vif(stepwise_reg)
+#VIF values high for sqft_above, sqft_lot15, sqft_living, so removed sqft_above
+
+#stepwise regression minus correlated variables
+step(regnull, scope=list(lower=regnull, upper=regfull), direction="both")
+
+stepwise_reg2 = lm(formula = price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition - sqft_above + sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = Data)
+
+#VIF values better
+faraway::vif(stepwise_reg2)
+
+
+summary(stepwise_reg2)
+
+par(mfrow = c(2, 2))
+plot(stepwise_reg2)
+
+```
