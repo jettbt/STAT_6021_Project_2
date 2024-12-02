@@ -236,10 +236,10 @@ step(regnull, scope=list(lower=regnull, upper=regfull), direction="forward")
 
 #Forward selected model:  0.7 adj r-squared
 
-fwd_selected = lm(price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition + sqft_above + sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = Data)
+fwd_selected = lm(price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition + sqft_above + sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = data)
 summary(fwd_selected)
 
-fwd_selected = lm(price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition - sqft_above - sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = Data)
+fwd_selected = lm(price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition - sqft_above - sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = data)
 summary(fwd_selected)
 
 ##### backward regression
@@ -247,7 +247,7 @@ step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward")
 
 ##### stepwise regression
 step(regnull, scope=list(lower=regnull, upper=regfull), direction="both")
-stepwise_reg = lm(formula = price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition + sqft_above + sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = Data)
+stepwise_reg = lm(formula = price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition + sqft_above + sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = data)
 
 faraway::vif(stepwise_reg)
 #VIF values high for sqft_above, sqft_lot15, sqft_living, so removed sqft_above
@@ -255,7 +255,7 @@ faraway::vif(stepwise_reg)
 #stepwise regression minus correlated variables
 step(regnull, scope=list(lower=regnull, upper=regfull), direction="both")
 
-stepwise_reg2 = lm(formula = price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition - sqft_above + sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = Data)
+stepwise_reg2 = lm(formula = price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition - sqft_above + sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = data)
 
 #VIF values better
 faraway::vif(stepwise_reg2)
