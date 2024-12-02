@@ -131,6 +131,28 @@ round(faraway::vif(result),3)
 ```
 No variables have a VIF of above 5, meaning this test does not indicate multicolinearity. sqftabove however has a 4.923 which is close enough to look into!
 
+Jett, Trying out new Arbitrary model:
+```{r}
+reduced <- lm(price ~ yr_built + sqft_living, data = data)
+reduced
+```
+```{r}
+par(mfrow = c(2, 2))
+plot(reduced)
+```
+Jett, ANOVA test comparison
+```{r}
+anova(reduced, result)
+```
+This supports the full model over the reduced model
+
+
+
+
+
+
+
+
 
 
 Zoha Linear Regression
