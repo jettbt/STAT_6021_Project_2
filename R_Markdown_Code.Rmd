@@ -13,6 +13,15 @@ renovated_data <- data[data$yr_renovated != 0, ]
 invalid_renovation_data <- data[data$yr_renovated != 0 & data$yr_renovated < data$yr_built, ]
 ```
 
+
+# Code to split our data into test and training
+```{r}
+set.seed(6021)
+sample.data<-sample.int(nrow(data), floor(.50*nrow(data)), replace = F)
+train<-data[sample.data, ]
+test<-data[-sample.data, ]
+```
+
 ```{r}
 library(ggplot2)
 
@@ -157,57 +166,6 @@ This supports the full model over the reduced model
 
 
 
-
-
-
-
-Zoha Linear Regression
-```{r}
-# I originally fit the mlr with all variables but each date was being treated as a separate predictor so I removed it along with ID since thats not a predictor
-result2 <- lm(price ~ . - date - id, data = data)
-summary(result2)
-```
-Zoha - Model Selection
-```{r}
-#added a 2 to the end of the variable so it didn't conflict with the above code
-##intercept only model
-regnull2 <- lm(price ~1 -date -id, data = data)
-##model with all predictors
-regfull2 <- lm(price ~. -date -id, data = data)
-
-```
-
-# Forward selection
-```{r}
-step(regnull2, scope=list(lower=regnull2, upper=regfull2), direction="forward")
-```
-# Backward Selection
-```{r}
-step(regfull2, scope=list(lower=regnull2, upper=regfull2), direction="backward")
-```
-
-
-# Both directions
-```{r}
-step(regnull2, scope=list(lower=regnull2, upper=regfull2), direction="both")
-```
-Zoha Regression assumptions
-```{r}
-par(mfrow = c(2, 2))
-plot(result2)
-```
-```{r}
-library(MASS)
-MASS::boxcox(result2)
-```
-Multicollinearity Check:
-```{r}
-library(faraway)
-all <- lm(price ~ . - date - sqft_living - id, data = data)
-round(faraway::vif(all),2)
-```
-
-Since these values are all below 5, they don't show multicollinearity.
 
 Katherine's Model
 ```{r}
