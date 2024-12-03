@@ -7,6 +7,20 @@ Jett's Data Cleaning:
 ```{r}
 non_renovated_data <- data[data$yr_renovated == 0, ]
 renovated_data <- data[data$yr_renovated != 0, ]
+
+# Katherine's Cleaning
+data = data %>% 
+  filter(bedrooms != 33)
+
+data$date = substring(Data$date, 1,8)
+data$date = as.Date(strptime(Data$date, "%Y%m%d"))
+data$month = month(ymd(Data$date), label = TRUE, abbr = FALSE)
+data$year = year(Data$date)
+
+Data3 = data %>%
+  group_by(month)%>%
+  summarize(avg_price = mean(price))
+
 ```
 
 ```{r}
@@ -92,6 +106,42 @@ ggplot(Data, aes(x= as.factor(grade), y=price))+
   theme(plot.title = element_text(hjust=0.5))+
   labs(x="Grade", y="Price", title="Price of House across Grade")
 ```
+
+Katherine's Data Visualizations
+```{r}
+####### Scatterplot of Price over Bedrooms ########### 
+ggplot(data, aes(y=price,x=bedrooms))+
+         geom_point(alpha=1, shape =21)+
+         labs(title = "Scatter Plot: Price by Bedroom Count",x="Bedroom Count", y="Price ($ USD)") + geom_smooth(method=lm, se=FALSE)
+
+
+####### Scatterplot of Price over Bathrooms ########### 
+ggplot(data, aes(y=price,x=bathrooms))+
+         geom_point(alpha=1, shape =21)+
+         labs(title = "Scatter Plot: Price by Bathroom Count", x="Bathroom Count", y="Price ($ USD)")+ geom_smooth(method=lm, se=FALSE)
+
+ggplot(data,aes(x=bedrooms,y=price)) + 
+        geom_bar(stat = "identity", na.rm=TRUE)
+
+
+########### Scatterplot of Price Over Time ########### 
+ggplot(data, aes(y=price,x=date))+
+         geom_point(alpha=1, shape =21)+
+         labs(title = "Scatter Plot: Price Over Time",x="Time", y="Price ($ USD)")
+
+########### Histogram Total Price by Month ########### 
+ggplot(data,aes(x=month)) + 
+        geom_bar(na.rm=TRUE)+
+         labs(title = "Histogram: Total Houses Sold Over Time",x="Time", y="Count")
+
+
+########### Average Price by Month ########### 
+ggplot(Data3, aes(y=avg_price,x=month))+
+         geom_point(alpha=1, shape =21)+
+         labs(title = "Scatter Plot: Average Price Over Time",x="Month", y="Price ($ USD)")
+
+```
+
 Jett's LM, forward, backward and stepwise elimination:
 ```{r}
 #I removed time due to the difficulties in working with it in a linear regression model, and I took out sqft living as it is just the sum of sqft above and sqft basement and is therefore redundant
@@ -215,61 +265,3 @@ Katherine's Model
 round(cor(data),3)
 ```
 
-```{r}
-#First model based on correlations (not very good adjusted R-squared value of 0.5741.)
-result<-lm(price~sqft_living+grade+bathrooms+view, data=data)
-summary(result)
-
-#Full Model with adj R-squared of ~0.7
-result_full<-lm(price~., data=data)
-summary(result_full)
-
-library(faraway)
-faraway::vif(result_full)
-
-```
-
-```{r}
-#forward, backward, and stepwise selection
-
-##intercept only model
-regnull <- lm(price~1, data=data)
-##model with all predictors
-regfull <- lm(price~., data=data)
-
-##### Forward selection
-step(regnull, scope=list(lower=regnull, upper=regfull), direction="forward")
-
-#Forward selected model:  0.7 adj r-squared
-
-fwd_selected = lm(price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition + sqft_above + sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = data)
-summary(fwd_selected)
-
-fwd_selected = lm(price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition - sqft_above - sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = data)
-summary(fwd_selected)
-
-##### backward regression
-step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward")
-
-##### stepwise regression
-step(regnull, scope=list(lower=regnull, upper=regfull), direction="both")
-stepwise_reg = lm(formula = price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition + sqft_above + sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = data)
-
-faraway::vif(stepwise_reg)
-#VIF values high for sqft_above, sqft_lot15, sqft_living, so removed sqft_above
-
-#stepwise regression minus correlated variables
-step(regnull, scope=list(lower=regnull, upper=regfull), direction="both")
-
-stepwise_reg2 = lm(formula = price ~ -id - date + sqft_living + lat + view + grade + yr_built + waterfront + bedrooms + bathrooms + zipcode + long + condition - sqft_above + sqft_living15 + yr_renovated + sqft_lot15 + sqft_lot + floors, data = data)
-
-#VIF values better
-faraway::vif(stepwise_reg2)
-
-
-summary(stepwise_reg2)
-
-par(mfrow = c(2, 2))
-plot(stepwise_reg2)
-
-```
