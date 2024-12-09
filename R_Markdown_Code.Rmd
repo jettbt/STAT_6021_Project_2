@@ -381,3 +381,46 @@ table(test$good_quality, preds>0.5)
 ```
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+Jetts logistic regression model that predicts if a home is of good quality:
+```{r}
+
+train$waterfront = factor(train$waterfront)
+
+chart1<-ggplot2::ggplot(train, aes(x=view, fill=good_quality))+
+  geom_bar(position = "fill")+
+  labs(x="View", y="Proportion",
+       title="Proportion of Quality by View")
+
+chart2<-ggplot2::ggplot(train, aes(x=floors, fill=good_quality))+
+  geom_bar(position = "fill")+
+  labs(x="Floors", y="Proportion",
+       title="Proportion of Quality by Floors")
+
+chart3<-ggplot2::ggplot(train, aes(x=condition, fill=good_quality))+
+  geom_bar(position = "fill")+
+  labs(x="Condition", y="Proportion",
+       title="Proportion of Quality by Condition")
+
+chart4<-ggplot2::ggplot(train, aes(x=waterfront, fill=good_quality))+
+  geom_bar(position = "fill")+
+  labs(x="Waterfront", y="Proportion",
+       title="Proportion of Quality by Waterfront")
+
+chart1
+chart2
+chart3
+chart4
+```
+
