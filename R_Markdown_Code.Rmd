@@ -1,5 +1,9 @@
 ```{r}
 library(tidyverse)
+library(MASS)
+library(ggplot2)
+library(faraway)
+
 data <- read.csv("kc_house_data.csv")
 data
 ```
@@ -12,14 +16,21 @@ renovated_data <- data[data$yr_renovated != 0, ]
 data = data %>% 
   filter(bedrooms != 33)
 
-data$date = substring(Data$date, 1,8)
-data$date = as.Date(strptime(Data$date, "%Y%m%d"))
-data$month = month(ymd(Data$date), label = TRUE, abbr = FALSE)
-data$year = year(Data$date)
+data1 = data
 
-Data3 = data %>%
+data1$date = substring(data$date, 1,8)
+data1$date = as.Date(strptime(data1$date, "%Y%m%d"))
+data1$month = month(ymd(data1$date), label = TRUE, abbr = FALSE)
+data1$year = year(data1$date)
+
+Data3 = data1 %>%
   group_by(month)%>%
   summarize(avg_price = mean(price))
+
+data = data %>%
+  mutate(good_quality = case_when(
+    condition > 3 & grade > 7  ~ 1 ,
+    condition <= 3 | grade <= 7 ~ 0))
 
 ```
 
@@ -32,12 +43,12 @@ invalid_renovation_data <- data[data$yr_renovated != 0 & data$yr_renovated < dat
 ```{r}
 set.seed(6021)
 sample.data<-sample.int(nrow(data), floor(.50*nrow(data)), replace = F)
+
 train<-data[sample.data, ]
 test<-data[-sample.data, ]
 ```
 
 ```{r}
-library(ggplot2)
 
 ggplot(data, aes(x = sqft_living, y = price)) +
   geom_point(alpha = 0.4) +
@@ -186,7 +197,6 @@ MASS::boxcox(result)
 ```
 Jett, Checking for multicollinearity:
 ```{r}
-library(faraway)
 round(faraway::vif(result),3)
 ```
 No variables have a VIF of above 5, meaning this test does not indicate multicolinearity. sqftabove however has a 4.923 which is close enough to look into!
@@ -217,9 +227,34 @@ This supports the full model over the reduced model
 
 
 
-Katherine's Model
+Katherine's Logistic Model
 ```{r}
-#Check correlations
-round(cor(data),3)
+#Correlations of quantitative predictors
+round(cor(train[,3:21], use= "complete.obs"),3)
+train = train %>%
+  mutate(good_quality = case_when(
+    condition > 3 & grade > 7  ~ 1 ,
+    condition <= 3 | grade <= 7 ~ 0))
+
+
+
+dp1<-ggplot2::ggplot(train,aes(x=bedrooms, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Number of Bedrooms by House Quality")
+
+dp2<-ggplot2::ggplot(train,aes(x=bathrooms, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Number of Bathrooms by House Quality")
+
+dp3<-ggplot2::ggplot(train,aes(x=sqft_living, color=good_quality))+
+  geom_density()+
+  labs(title="DDensity Plot of Number of Bedrooms by House Quality")
+
+dp4<-ggplot2::ggplot(train,aes(x=floors, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Number of Floors by House Quality")
+
+gridExtra::grid.arrange(dp1, dp2, dp3, dp4, ncol = 2, nrow = 2)
+
 ```
 
