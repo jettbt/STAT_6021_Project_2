@@ -32,6 +32,8 @@ data = data %>%
     condition > 3 & grade > 7  ~ 1 ,
     condition <= 3 | grade <= 7 ~ 0))
 
+data$good_quality = as.factor(data$good_quality)
+
 ```
 
 ```{r}
@@ -231,12 +233,8 @@ Katherine's Logistic Model
 ```{r}
 #Correlations of quantitative predictors
 round(cor(train[,3:21], use= "complete.obs"),3)
-train = train %>%
-  mutate(good_quality = case_when(
-    condition > 3 & grade > 7  ~ 1 ,
-    condition <= 3 | grade <= 7 ~ 0))
 
-
+train$good_quality = as.factor(train$good_quality)
 
 dp1<-ggplot2::ggplot(train,aes(x=bedrooms, color=good_quality))+
   geom_density()+
@@ -248,13 +246,138 @@ dp2<-ggplot2::ggplot(train,aes(x=bathrooms, color=good_quality))+
 
 dp3<-ggplot2::ggplot(train,aes(x=sqft_living, color=good_quality))+
   geom_density()+
-  labs(title="DDensity Plot of Number of Bedrooms by House Quality")
+  labs(title="Density Plot of Number of Bedrooms by House Quality")
 
 dp4<-ggplot2::ggplot(train,aes(x=floors, color=good_quality))+
   geom_density()+
   labs(title="Density Plot of Number of Floors by House Quality")
 
 gridExtra::grid.arrange(dp1, dp2, dp3, dp4, ncol = 2, nrow = 2)
+```
+
+```{r}
+
+dp5<-ggplot2::ggplot(train,aes(x=sqft_lot, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Sq Ft of Lot by House Quality")
+
+dp6<-ggplot2::ggplot(train,aes(x=waterfront, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Waterfron by House Quality")
+
+dp7<-ggplot2::ggplot(train,aes(x=view, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of View by House Quality")
+
+dp8<-ggplot2::ggplot(train,aes(x=sqft_above, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Sq Ft. Above by House Quality")
+
+gridExtra::grid.arrange(dp5, dp6, dp7, dp8, ncol = 2, nrow = 2)
 
 ```
+
+```{r}
+dp9<-ggplot2::ggplot(train,aes(x=sqft_basement, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Sq Ft of Basement by House Quality")
+
+dp10<-ggplot2::ggplot(train,aes(x=yr_built, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Year Built by House Quality")
+
+dp11<-ggplot2::ggplot(train,aes(x=yr_renovated, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of View by House Quality")
+
+dp12<-ggplot2::ggplot(train,aes(x=sqft_living15, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Sq Ft. Living15 by House Quality")
+
+
+dp13<-ggplot2::ggplot(train,aes(x=sqft_lot15, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Sq Ft. Lots15 by House Quality")
+
+gridExtra::grid.arrange(dp9, dp10, dp11, dp12, dp13, ncol = 2, nrow = 3)
+```
+
+```{r}
+# Full model 
+
+result_log<-glm(good_quality~. - id - date - condition - grade, family=binomial, data=train)
+summary(result_log)
+
+faraway::vif(result_log)
+```
+
+```{r}
+# Reduced 
+
+reduced_log<-glm(good_quality~. - id - date - condition - grade - view - waterfront -  sqft_basement - sqft_lot - sqft_lot15, family=binomial, data=train)
+summary(reduced_log)
+
+#  sqft_above  has high multi collinearity with sqft_living
+faraway::vif(reduced_log)
+
+#better than full model 
+TS<-reduced_log$deviance-result_log$deviance
+1-pchisq(TS,5)
+```
+
+```{r}
+# Remove multicollinearity - compare removing sqft_above vs sqft_living
+
+reduced_log2<-glm(good_quality~. - id - date - condition - grade - view - waterfront -  sqft_basement - sqft_lot - sqft_lot15 - sqft_above, family=binomial, data=train)
+summary(reduced_log2)
+
+#  sqft_above  has high multi collinearity with sqft_living
+#sqft_living  44.81711 once removing sqft_above
+faraway::vif(reduced_log2)
+4.059e-04
+
+# Wald test to assess one coefficient
+z_stat = 0.0004059/0.00008755
+2*(1-pnorm(abs(z_stat)))
+
+```
+
+```{r}
+# Reduced Further
+
+reduced_log3<-glm(good_quality~. - id - date - condition - grade - view - waterfront -  sqft_basement - sqft_lot - sqft_lot15 - sqft_living, family=binomial, data=train)
+summary(reduced_log3) #higher AIC than above
+
+#  sqft_above  has high multi collinearity with sqft_living
+#sqft_above 38.06450 once removing sqft_living
+faraway::vif(reduced_log3)
+
+# Wald test to assess one coefficient
+z_stat = -0.0004153/0.00008494
+2*(1-pnorm(abs(z_stat)))
+
+
+```
+
+```{r}
+train = train[,-c(1,2)]
+test = test[,-c(1,2)]
+
+reduced_log2<-glm(good_quality~. - condition - grade - view - waterfront -  sqft_basement - sqft_lot - sqft_lot15 - sqft_above, family=binomial, data=train)
+
+sapply(data, class)
+
+preds<-predict(reduced_log2,newdata=test, type="response")
+
+##add predicted probabilities and classification based on threshold
+test.new<-data.frame(test,preds,preds>0.5)
+##disply actual response, predicted prob, and classification based on threshold
+head(test.new[,c(20,21,22)], )
+
+
+
+table(test$good_quality, preds>0.5)
+
+```
+
 
