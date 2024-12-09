@@ -152,9 +152,9 @@ ggplot(data, aes(y=price,x=date))+
          labs(title = "Scatter Plot: Price Over Time",x="Time", y="Price ($ USD)")
 
 ########### Histogram Total Price by Month ########### 
-ggplot(data,aes(x=month)) + 
-        geom_bar(na.rm=TRUE)+
-         labs(title = "Histogram: Total Houses Sold Over Time",x="Time", y="Count")
+#ggplot(data,aes(x=month)) + 
+#        geom_bar(na.rm=TRUE)+
+#         labs(title = "Histogram: Total Houses Sold Over Time",x="Time", y="Count")
 
 
 ########### Average Price by Month ########### 
@@ -452,4 +452,11 @@ TS
 1-pchisq(TS,7) #7 terms are dropped here
 ```
 Since we cannot reject the null, the reduced model fits the data as well as the full model and should be used.
+
+```{r}
+#test$date <- as.Date(test$date, format = "%Y%m%d")
+#I think we may need to take out date from both training and test before fitting the model
+preds<-predict(result2,newdata=test, type="response")
+table(test$good_quality, preds>0.5)
+```
 
