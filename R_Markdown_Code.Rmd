@@ -423,4 +423,33 @@ chart2
 chart3
 chart4
 ```
+```{r}
+train$waterfront <- as.numeric(train$waterfront)
+round(cor(train[,3:21], use= "complete.obs"),3)
+```
+```{r}
+result<-glm(good_quality~.- date - sqft_living - id, family=binomial, data=train)
+summary(result)
+```
+
+```{r}
+faraway::vif(result)
+```
+Based on this and the summary, I will drop bathrooms, floors, view, sqft basement, yr renovated, lat, and sqft lot15 from the model to try and lower VIFs:
+```{r}
+result2<-glm(good_quality~.- date - sqft_living - id - view - sqft_basement - floors - bathrooms - yr_renovated - lat - sqft_lot15, family=binomial, data=train)
+summary(result2)
+```
+```{r}
+faraway::vif(result2)
+```
+performing a test to assess result 1 vs result 2 (reduced model):
+```{r}
+TS<-result2$deviance-result$deviance
+TS
+```
+```{r}
+1-pchisq(TS,7) #7 terms are dropped here
+```
+Since we cannot reject the null, the reduced model fits the data as well as the full model and should be used.
 
