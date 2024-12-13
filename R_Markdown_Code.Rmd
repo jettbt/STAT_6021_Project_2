@@ -83,7 +83,7 @@ ggplot(data, aes(x = as.factor(condition), y = price)) +
 
 Zoha Data Visualizations:
 ```{r}
-ggplot(data, aes(x=sqft_living, y=price, color=sqft_living)) +
+ggplot(train, aes(x=sqft_living, y=price, color=sqft_living)) +
                  facet_wrap(~waterfront) +
                  geom_point() + 
                  labs(title = "Price of House based on sqft living and waterfront view",
@@ -93,12 +93,12 @@ ggplot(data, aes(x=sqft_living, y=price, color=sqft_living)) +
 ```
 **(2) Price of median sqft living **
 ```{r}
-Data<-data%>%
+train<-train%>%
   mutate(house_size=case_when(sqft_living <= 2000 ~ "small",
   sqft_living > 2000 & sqft_living <=5000 ~ "medium",
   sqft_living > 5000 ~ "large"))
 
-medianPrice<-Data %>% 
+medianPrice<-train %>% 
   group_by(house_size) %>% 
   summarize(median_price=median(price)) 
 
@@ -113,21 +113,23 @@ ggplot(medianPrice, aes(x=house_size, y=median_price))+
 **(3) Price and grade **
 
 ```{r}
-ggplot(Data, aes(x=grade, y=price, color=grade)) +
+ggplot(train, aes(x=grade, y=price, color=grade)) +
                  geom_point() + 
                  labs(title = "House Price based on Grade",
                         x="Grade",
                         y="Price") + 
                 theme(plot.title = element_text(hjust = 0.5))
 ```
-**(3) Price and grade boxcox plot**
+**(3) Price and grade boxplot**
 
 ```{r}
-ggplot(Data, aes(x= as.factor(grade), y=price))+ 
+ggplot(train, aes(x= as.factor(grade), y=price))+ 
   geom_boxplot()+
   theme(plot.title = element_text(hjust=0.5))+
   labs(x="Grade", y="Price", title="Price of House across Grade")
 ```
+
+
 
 Katherine's Data Visualizations
 ```{r}
