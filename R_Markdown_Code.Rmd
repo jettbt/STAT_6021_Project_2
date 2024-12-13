@@ -438,7 +438,11 @@ faraway::vif(reduced_log)
 
 #better than full model 
 TS<-reduced_log$deviance-result_log$deviance
+TS
+#p-value
 1-pchisq(TS,5)
+#Critical value
+qchisq(1-0.05,5)
 ```
 
 ```{r}
