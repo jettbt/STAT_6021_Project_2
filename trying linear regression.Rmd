@@ -1,0 +1,37 @@
+```{r}
+library(tidyverse)
+library(MASS)
+library(ggplot2)
+library(faraway)
+
+data <- read.csv("kc_house_data.csv")
+data
+```
+```{r}
+#data <- data[c("price", "bedrooms", "bathrooms",  "sqft_living", "floors","condition", "grade", "yr_built")]
+data$waterfront <- factor(data$waterfront)
+data$condition <- factor(data$condition)
+data$view <- factor(data$view)
+data$grade <- factor(data$grade)
+
+data <- data[, -which(names(data) %in% c("id", "zipcode", "lat",  "long", "date","sqft_above", "sqft_basement", "sqft_lot15","sqft_living15"))]
+#data <- data[, -which(names(data) %in% c("waterfront"))]
+set.seed(6021)
+sample.data<-sample.int(nrow(data), floor(.50*nrow(data)), replace = F)
+
+train<-data[sample.data, ]
+test<-data[-sample.data, ]
+result <- lm(price ~ ., data = train)
+par(mfrow = c(2, 2))
+plot(result)
+logtrain <- train
+logtrain$price <- log(logtrain$price)
+resultlog <- lm(price ~ ., data = logtrain)
+par(mfrow = c(2, 2))
+plot(resultlog)
+```
+```{r}
+regnull <- lm(price~1, data=train)
+regfull <- result
+step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward")
+```
