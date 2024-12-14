@@ -1,0 +1,318 @@
+```{r}
+library(tidyverse)
+library(MASS)
+library(ggplot2)
+library(faraway)
+
+data <- read.csv("kc_house_data.csv")
+data
+```
+
+# Section 3 - Data Cleanup
+```{r}
+non_renovated_data <- data[data$yr_renovated == 0, ]
+renovated_data <- data[data$yr_renovated != 0, ]
+invalid_renovation_data <- data[data$yr_renovated != 0 & data$yr_renovated < data$yr_built, ]
+
+data = data %>% 
+  filter(bedrooms != 33)
+
+time_data = data
+
+data$waterfront <- factor(data$waterfront)
+data$condition <- factor(data$condition)
+data$view <- factor(data$view)
+data$grade <- factor(data$grade)
+
+data <- data[, -which(names(data) %in% c("id", "zipcode", "lat",  "long", "date","sqft_above", "sqft_basement", "sqft_lot15","sqft_living15"))]
+
+#Splitting our code into test and training subsets
+set.seed(6021)
+sample.data<-sample.int(nrow(data), floor(.50*nrow(data)), replace = F)
+
+train<-data[sample.data, ]
+test<-data[-sample.data, ]
+
+time_data$date = substring(time_data$date, 1,8)
+time_data$date = as.Date(strptime(time_data$date, "%Y%m%d"))
+time_data$month = month(ymd(time_data$date), label = TRUE, abbr = FALSE)
+time_data$year = year(time_data$date)
+
+time_data_by_month = time_data %>%
+  group_by(month)%>%
+  summarize(avg_price = mean(price))
+```
+
+# Section 4 - Data Visulizations of how prices of homes are related to other variables
+```{r}
+ggplot(train, aes(x = sqft_living, y = price)) +
+  geom_point(alpha = 0.4) +
+  labs(
+    title = "Scatter Plot: Price vs. Living Area",
+    x = "Living Area (sqft)",
+    y = "Price"
+  )
+```
+```{r}
+ggplot(train, aes(x = as.factor(condition), y = price)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(
+    title = "Box Plot: Price by Condition",
+    x = "Condition",
+    y = "Price (Log)"
+  )
+```
+
+**(1) Price of median sqft living **
+```{r}
+train_house_size<-train%>%
+  mutate(house_size=case_when(sqft_living <= 2000 ~ "small",
+  sqft_living > 2000 & sqft_living <=5000 ~ "medium",
+  sqft_living > 5000 ~ "large"))
+
+medianPrice<-train_house_size %>% 
+  group_by(house_size) %>% 
+  summarize(median_price=median(price)) 
+
+ggplot(medianPrice, aes(x=house_size, y=median_price))+
+  geom_bar(fill="#90e7fc", stat='identity')+
+  theme(plot.title = element_text(hjust=0.5),
+        axis.text.x = element_text(angle = 90))+
+  labs(x="Square foot living", y="Median Price of House",
+  title="Price of House by Sq Ft")
+```
+
+**(2) Price of sqft living and waterfront view **
+```{r}
+ggplot(train, aes(x=sqft_living, y=price, color=sqft_living)) +
+                 facet_wrap(~waterfront) +
+                 geom_point() + 
+                 labs(title = "Price of House based on sqft living and waterfront view",
+                        x="Square foot living space",
+                        y="Price")+ 
+                theme(plot.title = element_text(hjust = 0.5))
+```
+
+**(3) Price and grade scatterplot**
+
+```{r}
+ggplot(train, aes(x=grade, y=price, color=grade)) +
+                 geom_point() + 
+                 labs(title = "House Price based on Grade",
+                        x="Grade",
+                        y="Price") + 
+                theme(plot.title = element_text(hjust = 0.5))
+```
+
+**(4) Price and grade boxplot**
+
+```{r}
+ggplot(train, aes(x= as.factor(grade), y=price))+ 
+  geom_boxplot()+
+  theme(plot.title = element_text(hjust=0.5))+
+  labs(x="Grade", y="Price", title="Price of House across Grade")
+```
+```{r}
+####### Scatterplot of Price over Bedrooms ########### 
+ggplot(train, aes(y=price,x=bedrooms))+
+         geom_point(alpha=1, shape =21)+
+         labs(title = "Scatter Plot: Price by Bedroom Count",x="Bedroom Count", y="Price ($ USD)") + geom_smooth(method=lm, se=FALSE)
+
+
+####### Scatterplot of Price over Bathrooms ########### 
+ggplot(train, aes(y=price,x=bathrooms))+
+         geom_point(alpha=1, shape =21)+
+         labs(title = "Scatter Plot: Price by Bathroom Count", x="Bathroom Count", y="Price ($ USD)")+ geom_smooth(method=lm, se=FALSE)
+
+ggplot(train,aes(x=bedrooms,y=price)) + 
+        geom_bar(stat = "identity", na.rm=TRUE)
+
+########### Average Price by Month ########### 
+ggplot(time_data_by_month, aes(y=avg_price,x=month))+
+         geom_point(alpha=1, shape =21)+
+         labs(title = "Scatter Plot: Average Price Over Time",x="Month", y="Price ($ USD)")
+```
+
+# Section 5 - Linear Regression Model Selection
+```{r}
+# Correlation for linear regression 
+train_without_categoricals =  train[, -which(names(train) %in% c("waterfront", "grade","view", "condition"))]
+round(cor(train_without_categoricals),3)
+```
+```{r}
+#data <- data[, -which(names(data) %in% c("waterfront", "grade","view"))]
+result <- lm(price ~ ., data = train)
+summary(result)
+
+#try reducing model by removing categorical variables
+
+reduced <- lm(price ~ ., data = train_without_categoricals)
+summary(reduced)
+
+#test VIF values
+round(faraway::vif(result),3)
+
+#Reject the null, so the data supports the full model
+anova(reduced, result)
+
+par(mfrow = c(2, 2))
+plot(result)
+```
+```{r}
+regnull <- lm(price~1, data=train)
+regfull <- result
+step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward")
+```
+```{r}
+library(MASS)
+MASS::boxcox(result)
+```
+**(Regression assumptions check)**
+```{r}
+logtrain <- train
+logtrain$price <- log(logtrain$price)
+
+resultlog <- lm(price ~ ., data = logtrain)
+par(mfrow = c(2, 2))
+plot(resultlog)
+
+#Test without influential point 
+train_without_influential = data[-7253,]
+
+result2 <- lm(price ~ ., data = train_without_influential)
+summary(result2)
+
+
+library(MASS)
+MASS::boxcox(result)
+```
+**(Check for multicollinearity)**
+```{r}
+round(faraway::vif(result),3)
+```
+# Section 6 - Data Visualizations to explore characteristics of good quality homes
+```{r}
+train$condition <- as.numeric(train$condition)
+train$grade <- as.numeric(train$grade)
+
+train = train %>%
+  mutate(good_quality = case_when(
+    condition > 3 & grade > 7  ~ 1 ,
+    condition <= 3 | grade <= 7 ~ 0))
+
+train$condition <- factor(train$condition)
+train$grade <- factor(train$grade)
+
+train$good_quality = as.factor(train$good_quality)
+```
+
+
+```{r}
+dp1<-ggplot2::ggplot(train,aes(x=floors, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Good Quality Houses by Floors")
+
+dp2<-ggplot2::ggplot(train,aes(x=bathrooms, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Good Quality Houses by Number of Bathrooms")
+
+dp3<-ggplot2::ggplot(train,aes(x=bedrooms, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Good Quality Houses by Number of Bedrooms")
+
+dp4<-ggplot2::ggplot(train,aes(x=price, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Good Quality Houses by Price")
+
+dp5<-ggplot2::ggplot(train,aes(x=yr_built, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Good Quality Houses by Year Built")
+
+dp6<-ggplot2::ggplot(train,aes(x=yr_renovated, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Good Quality Houses by Year Renovated")
+
+dp7<-ggplot2::ggplot(train,aes(x=sqft_lot, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Good Quality Houses by Sq Ft of Lot")
+
+dp8<-ggplot2::ggplot(train,aes(x=sqft_living, color=good_quality))+
+  geom_density()+
+  labs(title="Density Plot of Good Quality Houses by Square foot Living")
+
+
+dp1
+dp2
+dp3
+dp4
+dp5
+dp6
+dp7
+dp8
+```
+```{r}
+train$waterfront = factor(train$waterfront)
+train$view = factor(train$view)
+train$floors = factor(train$floors)
+train$bathrooms = factor(train$bathrooms)
+train$bedrooms = factor(train$bedrooms)
+
+chart1<-ggplot2::ggplot(train, aes(x=waterfront, fill=good_quality))+
+  geom_bar(position = "fill")+
+  labs(x="Waterfront", y="Proportion",
+  title="Proportion of Good Quality Houses by Waterfront View")
+
+chart2<-ggplot2::ggplot(train, aes(x=view, fill=good_quality))+
+  geom_bar(position = "fill")+
+  labs(x="View", y="Proportion",
+  title="Proportion of Good Quality Houses by View")
+
+chart3<-ggplot2::ggplot(train, aes(x=floors, fill=good_quality))+
+  geom_bar(position = "fill")+
+  labs(x="Floors", y="Proportion",
+  title="Proportion of Good Quality Houses by Floors")
+
+chart4<-ggplot2::ggplot(train, aes(x=sqft_category, fill=good_quality))+
+  geom_bar(position = "fill")+
+  labs(x="Square Foot Category", y="Proportion",
+  title="Proportion of Good Quality Houses by Square Foot")
+
+chart5<-ggplot2::ggplot(train, aes(x=bathrooms, fill=good_quality))+
+  geom_bar(position = "fill")+
+  labs(x="Bathrooms", y="Proportion",
+  title="Proportion of Good Quality Houses by Number of Bathrooms")
+
+chart5<-ggplot2::ggplot(train, aes(x=bedrooms, fill=good_quality))+
+  geom_bar(position = "fill")+
+  labs(x="Bedrooms", y="Proportion",
+  title="Proportion of Good Quality Houses by Number of Bedrooms")
+
+chart1
+chart2
+chart3
+chart5
+
+```
+
+```{r}
+
+chart3<-ggplot2::ggplot(train, aes(x=condition, fill=good_quality))+
+  geom_bar(position = "fill")+
+  labs(x="Condition", y="Proportion",
+       title="Proportion of Good Quality Houses by Condition")
+
+chart3
+```
+
+# Section 7 - Logistic Regression Model Selection
+```{r}
+result_log<-glm(good_quality~. - condition - grade, family=binomial, data=train)
+summary(result_log)
+
+faraway::vif(result_log)
+```
+```{r}
+?stepwise
+```
+
