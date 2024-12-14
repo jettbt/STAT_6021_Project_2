@@ -19,7 +19,22 @@ data = data %>%
 
 data1 = data
 
-data1$date = substring(data$date, 1,8)
+data$waterfront <- factor(data$waterfront)
+data$condition <- factor(data$condition)
+data$view <- factor(data$view)
+data$grade <- factor(data$grade)
+
+data <- data[, -which(names(data) %in% c("id", "zipcode", "lat",  "long", "date","sqft_above", "sqft_basement", "sqft_lot15","sqft_living15"))]
+#data <- data[, -which(names(data) %in% c("waterfront"))]
+set.seed(6021)
+sample.data<-sample.int(nrow(data), floor(.50*nrow(data)), replace = F)
+
+train<-data[sample.data, ]
+test<-data[-sample.data, ]
+
+
+
+data1$date = substring(data1$date, 1,8)
 data1$date = as.Date(strptime(data1$date, "%Y%m%d"))
 data1$month = month(ymd(data1$date), label = TRUE, abbr = FALSE)
 data1$year = year(data1$date)
@@ -27,15 +42,6 @@ data1$year = year(data1$date)
 Data3 = data1 %>%
   group_by(month)%>%
   summarize(avg_price = mean(price))
-
-data = data %>%
-  mutate(good_quality = case_when(
-    condition > 3 & grade > 7  ~ 1 ,
-    condition <= 3 | grade <= 7 ~ 0))
-
-data$good_quality = as.factor(data$good_quality)
-
-train_correlated_df = train[,-c(1:2, 22)]
 
 
 ```
@@ -47,11 +53,11 @@ invalid_renovation_data <- data[data$yr_renovated != 0 & data$yr_renovated < dat
 
 # Code to split our data into test and training
 ```{r}
-set.seed(6021)
-sample.data<-sample.int(nrow(data), floor(.50*nrow(data)), replace = F)
+#set.seed(6021)
+#sample.data<-sample.int(nrow(data), floor(.50*nrow(data)), replace = F)
 
-train<-data[sample.data, ]
-test<-data[-sample.data, ]
+#train<-data[sample.data, ]
+#test<-data[-sample.data, ]
 ```
 
 # Section 4 - Data Visulizations of how prices of homes are related to other variables
@@ -178,76 +184,67 @@ ggplot(Data3, aes(y=avg_price,x=month))+
 
 ```{r}
 # Correlation for linear regression 
-round(cor(train_correlated_df),3)
+train_without_categoricals =  train[, -which(names(train) %in% c("waterfront", "grade","view", "condition"))]
+round(cor(train_without_categoricals),3)
 
 ```
 
 # Section 5 - Linear Regression Model Selection
 ```{r}
-#Time was removed due to the difficulties in working with it in a linear regression model, and sqft living was also removed as it is just the sum of sqft above and sqft basement and is therefore redundant
-train
-result1 <- lm(price ~ . - date - id -sqft_above -sqft_basement - good_quality - zipcode -lat -long - sqft_living15, data = train)
-summary(result1)
-
-library(faraway)
-round(faraway::vif(result1),3)
-
-regfull1 <- result1
-
-
-```
-```{r}
-#Time was removed due to the difficulties in working with it in a linear regression model, and sqft living was also removed as it is just the sum of sqft above and sqft basement and is therefore redundant
-
-train = train[,-23]#FIX remove house_size earlier in data
-  
-result2 <- lm(price ~ . - date - id - sqft_above -sqft_basement - good_quality - zipcode -lat -long - sqft_living15 - sqft_lot15, data = train)
-summary(result2)
-
-result3 <- lm(price ~ . - date - id - sqft_above -sqft_basement - good_quality - zipcode -lat -long - sqft_lot, data = train)
-summary(result3)
-
-
-library(faraway)
-round(faraway::vif(result2),3)
-
-regfull1 <- result1
-
-
-```
-
-```{r}
-result <- lm(price ~ . - date - id -sqft_above -sqft_basement - good_quality - zipcode -lat -long, data = train)
+#data <- data[, -which(names(data) %in% c("waterfront", "grade","view"))]
+result <- lm(price ~ ., data = train)
 summary(result)
-```
 
-```{r}
-train_automated_df = train[,-c(1:2,7,13:14,17:19,22)]
+#try reducing model by removing categorical variables
 
-regnull <- lm(price~1, data=train_automated_df)
-regfull <- result3
-step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward")
-```
+reduced <- lm(price ~ ., data = train1)
+summary(reduced)
 
-```{r}
-step(regnull, scope=list(lower=regnull, upper=regfull), direction="forward")
-```
+#test VIF values
+round(faraway::vif(result),3)
 
-```{r}
-step(regnull, scope=list(lower=regnull, upper=regfull), direction="both")
-```
-
-**(Regression assumptions check)**
-```{r}
-
+#Reject the null, so the data supports the full model
+anova(reduced, result)
 
 par(mfrow = c(2, 2))
-plot(result3)
+plot(result)
+```
+
+```{r}
+regnull <- lm(price~1, data=train)
+regfull <- result
+step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward")
 ```
 ```{r}
 library(MASS)
 MASS::boxcox(result)
 ```
+
+
+**(Regression assumptions check)**
+```{r}
+
+logtrain <- train
+logtrain$price <- log(logtrain$price)
+
+resultlog <- lm(price ~ ., data = logtrain)
+par(mfrow = c(2, 2))
+plot(resultlog)
+
+#Test without influential point 
+train_without_influential = data[7253,]
+
+result2 <- lm(price ~ ., data = train_without_influential)
+summary(result2)
+
+
+
+
+library(MASS)
+MASS::boxcox(result)
+
+```
+
 
 ```{r}
 #logdata <- train[,-c(1:2,22:23)] # use train_automated_df instead
@@ -469,6 +466,16 @@ chart5
 ```
 
 # Section 7 - Logistic Regression Model Selection
+```{r}
+#Logisitic cleaning partial
+data = data %>%
+  mutate(good_quality = case_when(
+    condition > 3 & grade > 7  ~ 1 ,
+    condition <= 3 | grade <= 7 ~ 0))
+
+data$good_quality = as.factor(data$good_quality)
+```
+
 ```{r}
 # Full model 
 
