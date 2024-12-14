@@ -35,6 +35,9 @@ data = data %>%
 
 data$good_quality = as.factor(data$good_quality)
 
+train_correlated_df = train[,-c(1:2, 22)]
+
+
 ```
 
 ```{r}
@@ -169,16 +172,40 @@ ggplot(Data3, aes(y=avg_price,x=month))+
          geom_point(alpha=1, shape =21)+
          labs(title = "Scatter Plot: Average Price Over Time",x="Month", y="Price ($ USD)")
 
+
+
+```
+
+```{r}
+# Correlation for linear regression 
+round(cor(train_correlated_df),3)
+
 ```
 
 # Section 5 - Linear Regression Model Selection
 ```{r}
 #Time was removed due to the difficulties in working with it in a linear regression model, and sqft living was also removed as it is just the sum of sqft above and sqft basement and is therefore redundant
-result <- lm(price ~ . - date - sqft_living - id, data = data)
+
+result1 <- lm(price ~ . - date - id- sqft_basement - good_quality-  house_size, data = train)
+summary(result1)
+
+library(faraway)
+round(faraway::vif(result1),3)
+
+regfull1 <- result1
+
+
+```
+
+```{r}
+result <- lm(price ~ . - date - sqft_living - id - good_quality-  house_size, data = train)
 summary(result)
 ```
+
 ```{r}
-regnull <- lm(price~1, data=data)
+train_automated_df = train[,-c(1:2,22:23)]
+
+regnull <- lm(price~1, data=train_automated_df)
 regfull <- result
 step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward")
 ```
@@ -191,6 +218,8 @@ step(regnull, scope=list(lower=regnull, upper=regfull), direction="both")
 
 **(Regression assumptions check)**
 ```{r}
+
+
 par(mfrow = c(2, 2))
 plot(result)
 ```
@@ -200,8 +229,8 @@ MASS::boxcox(result)
 ```
 
 ```{r}
-#data$y.star<-log(data$price)
-#result.ystar<-lm(y.star~.- date - sqft_living - id, data=data)
+#train$y.star<-log(train$price)
+#result.ystar<-lm(y.star~.- date - sqft_living - id, data=train)
 #par(mfrow = c(2, 2))
 #plot(result.ystar)
 ```
@@ -213,8 +242,8 @@ No variables have a VIF of above 5, meaning this test does not indicate multicol
 
 Note: Trying out potential other model:
 ```{r}
-reduced <- lm(price ~ . - id - sqft_basement - date, data = data)
-reduced
+reduced <- lm(price ~ . - id - sqft_basement - date - good_quality, data = train)
+summary(reduced)
 ```
 ```{r}
 par(mfrow = c(2, 2))
