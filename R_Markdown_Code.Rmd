@@ -229,10 +229,11 @@ MASS::boxcox(result)
 ```
 
 ```{r}
-#train$y.star<-log(train$price)
-#result.ystar<-lm(y.star~.- date - sqft_living - id, data=train)
-#par(mfrow = c(2, 2))
-#plot(result.ystar)
+logdata <- train[,-c(1:2,22:23)]
+logdata$y.star<-log(logdata$price)
+result.ystar<-lm(y.star~.- sqft_living, data=logdata)
+par(mfrow = c(2, 2))
+plot(result.ystar)
 ```
 **(Check for multicollinearity)**
 ```{r}
@@ -453,6 +454,7 @@ chart5
 result_log<-glm(good_quality~. - id - date - condition - grade, family=binomial, data=train)
 summary(result_log)
 
+#sqft basement needs to not be NA
 faraway::vif(result_log)
 ```
 
