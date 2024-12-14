@@ -195,14 +195,20 @@ round(faraway::vif(result),3)
 ```{r}
 train$condition <- as.numeric(train$condition)
 train$grade <- as.numeric(train$grade)
+test$condition <- as.numeric(test$condition)
+test$grade <- as.numeric(test$grade)
 
 train = train %>%
   mutate(good_quality = case_when(
     condition > 3 & grade > 7  ~ 1 ,
     condition <= 3 | grade <= 7 ~ 0))
 
-train$condition <- factor(train$condition)
-train$grade <- factor(train$grade)
+test = test %>%
+  mutate(good_quality = case_when(
+    condition > 3 & grade > 7  ~ 1 ,
+    condition <= 3 | grade <= 7 ~ 0))
+
+train <- train[, -which(names(train) %in% c("condition", "grade"))]
 
 train$good_quality = as.factor(train$good_quality)
 ```
@@ -254,9 +260,6 @@ dp8
 ```{r}
 train$waterfront = factor(train$waterfront)
 train$view = factor(train$view)
-train$floors = factor(train$floors)
-train$bathrooms = factor(train$bathrooms)
-train$bedrooms = factor(train$bedrooms)
 
 chart1<-ggplot2::ggplot(train, aes(x=waterfront, fill=good_quality))+
   geom_bar(position = "fill")+
@@ -295,24 +298,83 @@ chart5
 
 ```
 
-```{r}
-
-chart3<-ggplot2::ggplot(train, aes(x=condition, fill=good_quality))+
-  geom_bar(position = "fill")+
-  labs(x="Condition", y="Proportion",
-       title="Proportion of Good Quality Houses by Condition")
-
-chart3
-```
 
 # Section 7 - Logistic Regression Model Selection
 ```{r}
-result_log<-glm(good_quality~. - condition - grade, family=binomial, data=train)
+result_log<-glm(good_quality~., family=binomial, data=train)
 summary(result_log)
 
 faraway::vif(result_log)
 ```
+
 ```{r}
-?stepwise
+regnull <- glm(good_quality~1, family=binomial, data=train)
+regfull <- result_log
+step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward")
+```
+
+```{r}
+# Reduced again
+
+reduced2_log<- glm(formula = good_quality ~ price + bedrooms + sqft_living + 
+    view + yr_built + yr_renovated, family = binomial, data = train)
+summary(reduced2_log)
+
+
+faraway::vif(reduced2_log)
+```
+```{r}
+#better than full model 
+TS<-reduced2_log$deviance-result_log$deviance
+TS
+#p-value
+1-pchisq(TS,4)
+#Critical value
+qchisq(1-0.05,4)
+```
+
+The null hypothesis supports droppping the 4 predictors, and the alternate hypothesis supports not dropping the 4 predictors. We fail to reject the null hypothesis, so we drop ---- to use the reduced model. 
+
+
+```{r}
+
+preds<-predict(reduced2_log,newdata=test, type="response")
+
+##add predicted probabilities and classification based on threshold
+test.new<-data.frame(test,preds,preds>0.5)
+##disply actual response, predicted prob, and classification based on threshold
+head(test.new[,c(13,14,15)], )
+
+
+
+table(test$good_quality, preds>0.5)
+```
+
+```{r}
+table(test$good_quality, preds>0.55)
+```
+
+#Calculate ROC Curve
+
+```{r}
+library(ROCR)
+##produce the numbers associated with classification table
+rates<-ROCR::prediction(preds, test$good_quality)
+
+##store the true positive and false positive rates
+roc_result<-ROCR::performance(rates,measure="tpr", x.measure="fpr")
+
+##plot ROC curve and overlay the diagonal line for random guessing
+plot(roc_result, main="ROC Curve for Reduced Model")
+lines(x = c(0,1), y = c(0,1), col="red")
+#points(x=0.2068966, y=0.6393443, col="blue", pch=16)
+
+```
+
+
+```{r}
+##compute the AUC
+auc<-performance(rates, measure = "auc")
+auc@y.values
 ```
 
