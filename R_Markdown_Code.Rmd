@@ -466,6 +466,147 @@ chart5
 ```
 
 # Section 7 - Logistic Regression Model Selection
+
+```{r}
+train = train %>%
+  mutate(good_quality = case_when(
+    condition > 3 & grade > 7  ~ 1 ,
+    condition <= 3 | grade <= 7 ~ 0))
+
+train$good_quality = as.factor(train$good_quality)
+train$waterfront <- factor(train$waterfront)
+
+result_log<-glm(good_quality~. - condition - grade, family=binomial, data=train)
+summary(result_log)
+
+#sqft basement needs to not be NA
+faraway::vif(result_log)
+```
+
+Since waterfront is insignificant if we keep in the rest of the factors, we'll run a reduced model without it
+
+```{r}
+# Reduced 
+
+reduced_log<-glm(good_quality~. - condition - grade - waterfront, family=binomial, data=train)
+summary(reduced_log)
+
+
+faraway::vif(reduced_log)
+```
+Since sqft_living has the highest VIF, we'll run the model again without it
+
+```{r}
+# Reduced again
+
+reduced2_log<-glm(good_quality~. - condition - grade - waterfront - sqft_lot, family=binomial, data=train)
+summary(reduced2_log)
+
+
+faraway::vif(reduced2_log)
+```
+Although the VIF for sqft_living is 33.66, all of the factors in the model look to be significant
+
+Compare full model to reduced
+
+```{r}
+#better than full model 
+TS<-reduced2_log$deviance-result_log$deviance
+TS
+#p-value
+1-pchisq(TS,2)
+#Critical value
+qchisq(1-0.05,2)
+```
+The null hypothesis supports droppping the 2 predictors, and the alternate hypothesis supports not dropping the 2 predictors. We fail to reject the null hypothesis, so we drop waterfront and sqft_lot to use the reduced model. 
+
+```{r}
+test = test %>%
+  mutate(good_quality = case_when(
+    condition > 3 & grade > 7  ~ 1 ,
+    condition <= 3 | grade <= 7 ~ 0))
+
+
+preds<-predict(reduced2_log,newdata=test, type="response")
+
+##add predicted probabilities and classification based on threshold
+test.new<-data.frame(test,preds,preds>0.5)
+##disply actual response, predicted prob, and classification based on threshold
+head(test.new[,c(13,14,15)], )
+
+
+
+table(test$good_quality, preds>0.5)
+```
+TPR = (100/100+1204) = 100/1304
+True Positive Rate (TPR): ≈ 0.0766 (or 7.66%)
+FPR = 106/(106+9397) = 106/9503
+False Positive Rate (FPR): ≈ 0.0111 (or 1.11%)
+ErrorRate= (106+1204)/(100+9397+106+1204) = 1310/10601 ≈0.1234
+the error rate is approximately 0.1234 or 12.34%.
+
+```{r}
+table(test$good_quality, preds>0.55)
+```
+TPR = (76/(76+1228)) = 76/1304 = 5.82%
+FPR = 90/(90+9413) = 90/9503 = 0.95%
+Error Rate = (90+1228)/(76+9413+90+1228) = 1318/10601 = 12.44%
+** Mention unbalanced data
+
+#Calculate ROC Curve
+
+```{r}
+library(ROCR)
+##produce the numbers associated with classification table
+rates<-ROCR::prediction(preds, test$good_quality)
+
+##store the true positive and false positive rates
+roc_result<-ROCR::performance(rates,measure="tpr", x.measure="fpr")
+
+##plot ROC curve and overlay the diagonal line for random guessing
+plot(roc_result, main="ROC Curve for Reduced Model")
+lines(x = c(0,1), y = c(0,1), col="red")
+points(x=0.2068966, y=0.6393443, col="blue", pch=16)
+
+```
+
+Since our ROC is above the curve, this means our model does better than random guessing.
+
+```{r}
+##compute the AUC
+auc<-performance(rates, measure = "auc")
+auc@y.values
+```
+The AUC is around 0.775, which is greater than 0.5, do it does better than random guessing
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------------------Old code below -----------------
+
+
+
+
+
+
+
+
+
+
+
+
+
 ```{r}
 #Logisitic cleaning partial
 data = data %>%
