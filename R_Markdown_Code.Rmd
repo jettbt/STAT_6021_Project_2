@@ -185,8 +185,8 @@ round(cor(train_correlated_df),3)
 # Section 5 - Linear Regression Model Selection
 ```{r}
 #Time was removed due to the difficulties in working with it in a linear regression model, and sqft living was also removed as it is just the sum of sqft above and sqft basement and is therefore redundant
-
-result1 <- lm(price ~ . - date - id- sqft_basement - good_quality-  house_size, data = train)
+train
+result1 <- lm(price ~ . - date - id -sqft_above -sqft_basement - good_quality - zipcode -lat -long - sqft_living15, data = train)
 summary(result1)
 
 library(faraway)
@@ -196,22 +196,43 @@ regfull1 <- result1
 
 
 ```
+```{r}
+#Time was removed due to the difficulties in working with it in a linear regression model, and sqft living was also removed as it is just the sum of sqft above and sqft basement and is therefore redundant
+
+train = train[,-23]#FIX remove house_size earlier in data
+  
+result2 <- lm(price ~ . - date - id - sqft_above -sqft_basement - good_quality - zipcode -lat -long - sqft_living15 - sqft_lot15, data = train)
+summary(result2)
+
+result3 <- lm(price ~ . - date - id - sqft_above -sqft_basement - good_quality - zipcode -lat -long - sqft_lot, data = train)
+summary(result3)
+
+
+library(faraway)
+round(faraway::vif(result2),3)
+
+regfull1 <- result1
+
+
+```
 
 ```{r}
-result <- lm(price ~ . - date - sqft_living - id - good_quality-  house_size, data = train)
+result <- lm(price ~ . - date - id -sqft_above -sqft_basement - good_quality - zipcode -lat -long, data = train)
 summary(result)
 ```
 
 ```{r}
-train_automated_df = train[,-c(1:2,22:23)]
+train_automated_df = train[,-c(1:2,7,13:14,17:19,22)]
 
 regnull <- lm(price~1, data=train_automated_df)
-regfull <- result
+regfull <- result3
 step(regfull, scope=list(lower=regnull, upper=regfull), direction="backward")
 ```
+
 ```{r}
 step(regnull, scope=list(lower=regnull, upper=regfull), direction="forward")
 ```
+
 ```{r}
 step(regnull, scope=list(lower=regnull, upper=regfull), direction="both")
 ```
@@ -221,7 +242,7 @@ step(regnull, scope=list(lower=regnull, upper=regfull), direction="both")
 
 
 par(mfrow = c(2, 2))
-plot(result)
+plot(result3)
 ```
 ```{r}
 library(MASS)
@@ -229,9 +250,9 @@ MASS::boxcox(result)
 ```
 
 ```{r}
-logdata <- train[,-c(1:2,22:23)]
-logdata$y.star<-log(logdata$price)
-result.ystar<-lm(y.star~.- sqft_living, data=logdata)
+#logdata <- train[,-c(1:2,22:23)] # use train_automated_df instead
+train_automated_df$y.star<-log(train_automated_df$price)
+result.ystar<-lm(y.star~., data=train_automated_df)
 par(mfrow = c(2, 2))
 plot(result.ystar)
 ```
