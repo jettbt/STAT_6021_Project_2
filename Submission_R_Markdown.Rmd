@@ -174,6 +174,9 @@ logtrain <- train
 logtrain$price <- log(logtrain$price)
 
 resultlog <- lm(price ~ ., data = logtrain)
+summary(resultlog)
+
+
 par(mfrow = c(2, 2))
 plot(resultlog)
 
@@ -198,11 +201,36 @@ round(faraway::vif(result),3)
 newdata<-test[12,]
 
 #Returns interval (-116580.5, 681017.1)
-predict(result, newdata, level=0.95,
+predict(resultlog, newdata, level=0.95,
         interval="prediction")
 
+exp(12.03487)
+exp(13.25534)
+
 #Actual price 230000
-test[12,]
+test[12,1]
+```
+
+```{r}
+predictions <- predict(resultlog, newdata = test)
+
+
+predictions_actual_df = data.frame('predictions' = exp(predictions), 'actual' = test$price)
+       
+predictions_actual_df$diff_sq = (predictions_actual_df$actual - predictions_actual_df$predictions)**2
+
+sum(predictions_actual_df$diff_sq)/(nrow(test)-11)
+
+
+
+mean(predictions_actual_df$actual)
+
+mean(abs(predictions_actual_df$diff_sq))
+
+sum(predictions_actual_df$diff_sq)/(nrow(test)-11)
+
+
+
 ```
 
 
