@@ -223,7 +223,7 @@ ss_res <- sum(predictions_actual_df$diff_sq)
 
 ss_tot <- sum((predictions_actual_df$actual - mean(predictions_actual_df$actual)) **2)
 
-r_squared <- 1-(ssres/ss_tot)
+r_squared <- 1-(ss_res/ss_tot)
 
 r_squared
 
