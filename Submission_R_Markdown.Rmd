@@ -213,20 +213,16 @@ test[12,1]
 
 ```{r}
 predictions <- predict(resultlog, newdata = test)
-
-
+ 
+ 
 predictions_actual_df = data.frame('predictions' = exp(predictions), 'actual' = test$price)
-       
 predictions_actual_df$diff_sq = (predictions_actual_df$actual - predictions_actual_df$predictions)**2
-
-ss_res <- sum(predictions_actual_df$diff_sq)
-
-ss_tot <- sum((predictions_actual_df$actual - mean(predictions_actual_df$actual)) **2)
-
-r_squared <- 1-(ss_res/ss_tot)
-
-r_squared
-
+ 
+sqrt(sum(predictions_actual_df$diff_sq)/(nrow(test)-11))
+ 
+median(test$price)
+ 
+ 
 ```
 
 
