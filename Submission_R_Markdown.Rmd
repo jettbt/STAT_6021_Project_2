@@ -219,17 +219,13 @@ predictions_actual_df = data.frame('predictions' = exp(predictions), 'actual' = 
        
 predictions_actual_df$diff_sq = (predictions_actual_df$actual - predictions_actual_df$predictions)**2
 
-sum(predictions_actual_df$diff_sq)/(nrow(test)-11)
+ss_res <- sum(predictions_actual_df$diff_sq)
 
+ss_tot <- sum((predictions_actual_df$actual - mean(predictions_actual_df$actual)) **2)
 
+r_squared <- 1-(ssres/ss_tot)
 
-mean(predictions_actual_df$actual)
-
-mean(abs(predictions_actual_df$diff_sq))
-
-sum(predictions_actual_df$diff_sq)/(nrow(test)-11)
-
-
+r_squared
 
 ```
 
@@ -394,7 +390,7 @@ table(test$good_quality, preds>0.5)
 ```
 
 ```{r}
-table(test$good_quality, preds>0.55)
+table(test$good_quality, preds>0.56)
 ```
 
 #Calculate ROC Curve
